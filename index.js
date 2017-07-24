@@ -34,19 +34,25 @@ class J5sExecutor extends Executor {
      */
     _jenkinsJobCreateOrUpdate(jobName, xml) {
         return Promise.resolve().then(() =>
-            this.breaker.runCommand({ module: 'job',
-                                      action: 'exists',
-                                      params: [{ name: jobName}]})
+            this.breaker.runCommand({
+                module: 'job',
+                action: 'exists',
+                params: [{ name: jobName }]
+            })
         ).then((exists) => {
-            if(exists) {
-                return this.breaker.runCommand({module: 'job',
-                                                action: 'config',
-                                                params: [{ name: jobName, xml: xml}]});
-            } else {
-                return this.breaker.runCommand({module: 'job',
-                                                action: 'create',
-                                                params: [{ name: jobName, xml: xml}]});
+            if (exists) {
+                return this.breaker.runCommand({
+                    module: 'job',
+                    action: 'config',
+                    params: [{ name: jobName, xml }]
+                });
             }
+
+            return this.breaker.runCommand({
+                module: 'job',
+                action: 'create',
+                params: [{ name: jobName, xml }]
+            });
         });
     }
 
@@ -56,8 +62,8 @@ class J5sExecutor extends Executor {
      * @param  {String}   buildId     ID for the build
      * @return {String}               Jenkins job name
      */
-    _jobName(buildId){
-        return`SD-${buildId}`;
+    _jobName(buildId) {
+        return `SD-${buildId}`;
     }
 
     /**
@@ -120,12 +126,13 @@ class J5sExecutor extends Executor {
                 SD_BUILDID: String(config.buildId),
                 SD_TOKEN: config.token,
                 SD_API: this.ecosystem.api,
-                SD_STORE:this.ecosystem.store,
+                SD_STORE: this.ecosystem.store
             };
+
             return this.breaker.runCommand({
                 module: 'job',
                 action: 'build',
-                params: [{name: jobName, parameters }]
+                params: [{ name: jobName, parameters }]
             });
         });
     }
@@ -152,12 +159,12 @@ class J5sExecutor extends Executor {
             return this.breaker.runCommand({
                 module: 'build',
                 action: 'stop',
-                params: [{name: jobName, number: data.lastBuild.number}]
+                params: [{ name: jobName, number: data.lastBuild.number }]
             });
         }).then(() => this.breaker.runCommand({
-                module: 'job',
-                action: 'destroy',
-                params: [{name: jobName}]
+            module: 'job',
+            action: 'destroy',
+            params: [{ name: jobName }]
         }));
     }
 }
