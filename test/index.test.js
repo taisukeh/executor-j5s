@@ -112,6 +112,7 @@ describe('index', () => {
 
     describe('start', () => {
         let createOpts;
+        let configOpts;
         let existsOpts;
         let buildOpts;
 
@@ -119,6 +120,12 @@ describe('index', () => {
             createOpts = {
                 module: 'job',
                 action: 'create',
+                params: [{ name: jobName, xml: TEST_XML }]
+            };
+
+            configOpts = {
+                module: 'job',
+                action: 'config',
                 params: [{ name: jobName, xml: TEST_XML }]
             };
 
@@ -140,7 +147,8 @@ describe('index', () => {
 
         it('return null when the job is successfully created', (done) => {
             fsMock.readFile.yieldsAsync(null, TEST_XML);
-            // breakerMock.runCommand.yields(null);
+
+            breakerMock.runCommand.withArgs(existsOpts).resolves(false);
 
             executor.start(config).then(() => {
                 assert.calledOnce(fsMock.readFile);
@@ -152,11 +160,25 @@ describe('index', () => {
             });
         });
 
+        it('update job when job already exists', (done) => {
+            fsMock.readFile.yieldsAsync(null, TEST_XML);
+
+            breakerMock.runCommand.withArgs(existsOpts).resolves(true);
+
+            executor.start(config).then(() => {
+                assert.calledOnce(fsMock.readFile);
+                assert.calledWith(fsMock.readFile, configPath);
+                assert.calledWith(breakerMock.runCommand, existsOpts);
+                assert.calledWith(breakerMock.runCommand, configOpts);
+                assert.calledWith(breakerMock.runCommand, buildOpts);
+                done();
+            });
+        });
+
         it('return error when fs.readFile is getting error', (done) => {
             const error = new Error('fs.readFile error');
 
             fsMock.readFile.yieldsAsync(error);
-            // breakerMock.runCommand.yieldsAsync(null);
 
             executor.start(config).catch((err) => {
                 assert.deepEqual(err, error);
@@ -168,7 +190,7 @@ describe('index', () => {
             const error = new Error('job.create error');
 
             fsMock.readFile.yieldsAsync(null, TEST_XML);
-            breakerMock.runCommand.withArgs(createOpts).yieldsAsync(error);
+            breakerMock.runCommand.withArgs(createOpts).rejects(error);
 
             executor.start(config).catch((err) => {
                 assert.deepEqual(err, error);
@@ -180,8 +202,21 @@ describe('index', () => {
             const error = new Error('job.build error');
 
             fsMock.readFile.yieldsAsync(null, TEST_XML);
-            breakerMock.runCommand.withArgs(createOpts).yieldsAsync(null, null);
-            breakerMock.runCommand.withArgs(buildOpts).yieldsAsync(error);
+            breakerMock.runCommand.withArgs(createOpts).resolves('ok');
+            breakerMock.runCommand.withArgs(buildOpts).rejects(error);
+
+            executor.start(config).catch((err) => {
+                assert.deepEqual(err, error);
+                done();
+            });
+        });
+
+        it('return error when job.config is getting error', (done) => {
+            const error = new Error('job.build error');
+
+            fsMock.readFile.yieldsAsync(null, TEST_XML);
+            breakerMock.runCommand.withArgs(existsOpts).resolves(true);
+            breakerMock.runCommand.withArgs(configOpts).rejects(error);
 
             executor.start(config).catch((err) => {
                 assert.deepEqual(err, error);
@@ -247,7 +282,7 @@ describe('index', () => {
             const error = new Error('job.get error');
 
             breakerMock.runCommand.withArgs(getOpts).rejects(error);
-            breakerMock.runCommand.withArgs(stopOpts).yields(null);
+            breakerMock.runCommand.withArgs(stopOpts).resolves();
 
             executor.stop(buildIdConfig).catch((err) => {
                 assert.deepEqual(err, error);
@@ -291,7 +326,7 @@ describe('index', () => {
 
         it('calls jenkins function correctly', (done) => {
             fsMock.readFile.yieldsAsync(null, TEST_XML);
-            jenkinsMock.job.exists.yieldsAsync(false, false);
+            jenkinsMock.job.exists.yieldsAsync(null, false);
             jenkinsMock.job.create.yieldsAsync(null);
             jenkinsMock.job.build.yieldsAsync(null);
 
