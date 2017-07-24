@@ -19,7 +19,6 @@ class J5sExecutor extends Executor {
      */
     _jenkinsCommand(options, callback) {
         options.params.push(callback);
-
         this.jenkinsClient[options.module][options.action].apply(
             this.jenkinsClient[options.module],
             options.params);
@@ -150,7 +149,7 @@ class J5sExecutor extends Executor {
         return this.breaker.runCommand({
             module: 'job',
             action: 'get',
-            params: [jobName]
+            params: [{ name: jobName }]
         }).then((data) => {
             if (!(data && data.lastBuild && data.lastBuild.number)) {
                 throw new Error('No build has been started yet, try later');

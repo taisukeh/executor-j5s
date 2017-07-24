@@ -34,8 +34,15 @@ describe('index', () => {
         store: 'store'
     };
 
+    const buildParameters = {
+        SD_BUILDID: String(config.buildId),
+        SD_TOKEN: config.token,
+        SD_API: ecosystem.api,
+        SD_STORE: ecosystem.store
+    };
+
     const buildIdConfig = {
-        buildId: jobName
+        buildId: config.buildId
     };
 
     const fakeJobInfo = {
@@ -126,12 +133,7 @@ describe('index', () => {
                 action: 'build',
                 params: [{
                     name: jobName,
-                    parameters: {
-                        SD_BUILDID: String(config.buildId),
-                        SD_TOKEN: config.token,
-                        SD_API: ecosystem.api,
-                        SD_STORE: ecosystem.store
-                    }
+                    parameters: buildParameters
                 }]
             };
         });
@@ -156,7 +158,7 @@ describe('index', () => {
             fsMock.readFile.yieldsAsync(error);
             // breakerMock.runCommand.yieldsAsync(null);
 
-            executor.start(config, (err) => {
+            executor.start(config).catch((err) => {
                 assert.deepEqual(err, error);
                 done();
             });
@@ -168,7 +170,7 @@ describe('index', () => {
             fsMock.readFile.yieldsAsync(null, TEST_XML);
             breakerMock.runCommand.withArgs(createOpts).yieldsAsync(error);
 
-            executor.start(config, (err) => {
+            executor.start(config).catch((err) => {
                 assert.deepEqual(err, error);
                 done();
             });
@@ -181,7 +183,7 @@ describe('index', () => {
             breakerMock.runCommand.withArgs(createOpts).yieldsAsync(null, null);
             breakerMock.runCommand.withArgs(buildOpts).yieldsAsync(error);
 
-            executor.start(config, (err) => {
+            executor.start(config).catch((err) => {
                 assert.deepEqual(err, error);
                 done();
             });
@@ -191,29 +193,38 @@ describe('index', () => {
     describe('stop', () => {
         let getOpts;
         let stopOpts;
+        let destroyOpts;
 
         beforeEach(() => {
             getOpts = {
                 module: 'job',
                 action: 'get',
-                params: [jobName]
+                params: [{ name: jobName }]
             };
 
             stopOpts = {
                 module: 'build',
                 action: 'stop',
-                params: [jobName, buildNumber]
+                params: [{ name: jobName, number: buildNumber }]
+            };
+
+            destroyOpts = {
+                module: 'job',
+                action: 'destroy',
+                params: [{ name: jobName }]
             };
         });
 
         it('return null when the build is successfully stopped', (done) => {
-            breakerMock.runCommand.withArgs(getOpts).yields(null, fakeJobInfo);
-            breakerMock.runCommand.withArgs(stopOpts).yields(null);
+            breakerMock.runCommand.withArgs(getOpts).resolves(fakeJobInfo);
+            breakerMock.runCommand.withArgs(stopOpts).resolves(null);
+            breakerMock.runCommand.withArgs(destroyOpts).resolves(null);
 
-            executor.stop(buildIdConfig, (err) => {
-                assert.isNull(err);
+            executor.stop(buildIdConfig).then((ret) => {
+                assert.isNull(ret);
                 assert.calledWith(breakerMock.runCommand, getOpts);
                 assert.calledWith(breakerMock.runCommand, stopOpts);
+                assert.calledWith(breakerMock.runCommand, destroyOpts);
                 done();
             });
         });
@@ -223,10 +234,10 @@ describe('index', () => {
                 lastBuild: null
             };
 
-            breakerMock.runCommand.withArgs(getOpts).yields(null, noBuildJobInfo);
-            breakerMock.runCommand.withArgs(stopOpts).yields(null);
+            breakerMock.runCommand.withArgs(getOpts).resolves(noBuildJobInfo);
+            breakerMock.runCommand.withArgs(stopOpts).resolves(null);
 
-            executor.stop(buildIdConfig, (err) => {
+            executor.stop(buildIdConfig).catch((err) => {
                 assert.deepEqual(err.message, 'No build has been started yet, try later');
                 done();
             });
@@ -235,10 +246,10 @@ describe('index', () => {
         it('return error when job.get is getting error', (done) => {
             const error = new Error('job.get error');
 
-            breakerMock.runCommand.withArgs(getOpts).yieldsAsync(error);
+            breakerMock.runCommand.withArgs(getOpts).rejects(error);
             breakerMock.runCommand.withArgs(stopOpts).yields(null);
 
-            executor.stop(buildIdConfig, (err) => {
+            executor.stop(buildIdConfig).catch((err) => {
                 assert.deepEqual(err, error);
                 done();
             });
@@ -247,10 +258,10 @@ describe('index', () => {
         it('return error when build.stop is getting error', (done) => {
             const error = new Error('build.stop error');
 
-            breakerMock.runCommand.withArgs(getOpts).yields(null, fakeJobInfo);
-            breakerMock.runCommand.withArgs(stopOpts).yields(error);
+            breakerMock.runCommand.withArgs(getOpts).resolves(fakeJobInfo);
+            breakerMock.runCommand.withArgs(stopOpts).rejects(error);
 
-            executor.stop(buildIdConfig, (err) => {
+            executor.stop(buildIdConfig).catch((err) => {
                 assert.deepEqual(err, error);
                 done();
             });
@@ -266,25 +277,28 @@ describe('index', () => {
             Executor = require('../index');
 
             executor = new Executor({
+                ecosystem,
                 host: 'jenkins',
                 username: 'admin',
                 password: 'fakepassword'
             });
 
             jenkinsMock.job.create = sinon.stub(executor.jenkinsClient.job, 'create');
-            jenkinsMock.job.create = sinon.stub(executor.jenkinsClient.job, 'exists');
+            jenkinsMock.job.config = sinon.stub(executor.jenkinsClient.job, 'config');
+            jenkinsMock.job.exists = sinon.stub(executor.jenkinsClient.job, 'exists');
             jenkinsMock.job.build = sinon.stub(executor.jenkinsClient.job, 'build');
         });
 
         it('calls jenkins function correctly', (done) => {
             fsMock.readFile.yieldsAsync(null, TEST_XML);
+            jenkinsMock.job.exists.yieldsAsync(false, false);
             jenkinsMock.job.create.yieldsAsync(null);
             jenkinsMock.job.build.yieldsAsync(null);
 
-            executor.start(config, (err) => {
-                assert.isNull(err);
-                assert.calledWith(jenkinsMock.job.create, jobName, TEST_XML);
-                assert.calledWith(jenkinsMock.job.build, jobName);
+            executor.start(config).then(() => {
+                assert.calledWith(jenkinsMock.job.create, { name: jobName, xml: TEST_XML });
+                assert.calledWith(jenkinsMock.job.build,
+                                  { name: jobName, parameters: buildParameters });
                 done();
             });
         });
