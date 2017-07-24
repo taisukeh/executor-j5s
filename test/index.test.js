@@ -20,13 +20,19 @@ describe('index', () => {
     let BreakerFactory;
 
     const config = {
-        buildId: '4b8d9b530d2e5e297b4f470d5b0a6e1310d29c5e',
+        buildId: 1993,
         container: 'node:4',
         apiUri: 'http://localhost:8080',
         token: 'abcdefg'
     };
 
-    const jobName = config.buildId;
+    const jobName = `SD-${config.buildId}`;
+
+    const ecosystem = {
+        api: 'api',
+        ui: 'ui',
+        store: 'store'
+    };
 
     const buildIdConfig = {
         buildId: jobName
@@ -55,6 +61,8 @@ describe('index', () => {
         jenkinsMock = {
             job: {
                 create: sinon.stub(),
+                exists: sinon.stub(),
+                config: sinon.stub(),
                 build: sinon.stub()
             }
         };
@@ -72,6 +80,7 @@ describe('index', () => {
         Executor = require('../index');
 
         executor = new Executor({
+            ecosystem,
             host: 'jenkins',
             username: 'admin',
             password: 'fakepassword'
@@ -96,30 +105,45 @@ describe('index', () => {
 
     describe('start', () => {
         let createOpts;
+        let existsOpts;
         let buildOpts;
 
         beforeEach(() => {
             createOpts = {
                 module: 'job',
                 action: 'create',
-                params: [jobName, TEST_XML]
+                params: [{ name: jobName, xml: TEST_XML }]
+            };
+
+            existsOpts = {
+                module: 'job',
+                action: 'exists',
+                params: [{ name: jobName }]
             };
 
             buildOpts = {
                 module: 'job',
                 action: 'build',
-                params: [jobName]
+                params: [{
+                    name: jobName,
+                    parameters: {
+                        SD_BUILDID: String(config.buildId),
+                        SD_TOKEN: config.token,
+                        SD_API: ecosystem.api,
+                        SD_STORE: ecosystem.store
+                    }
+                }]
             };
         });
 
         it('return null when the job is successfully created', (done) => {
             fsMock.readFile.yieldsAsync(null, TEST_XML);
-            breakerMock.runCommand.yields(null);
+            // breakerMock.runCommand.yields(null);
 
-            executor.start(config, (err) => {
-                assert.isNull(err);
+            executor.start(config).then(() => {
                 assert.calledOnce(fsMock.readFile);
                 assert.calledWith(fsMock.readFile, configPath);
+                assert.calledWith(breakerMock.runCommand, existsOpts);
                 assert.calledWith(breakerMock.runCommand, createOpts);
                 assert.calledWith(breakerMock.runCommand, buildOpts);
                 done();
@@ -130,7 +154,7 @@ describe('index', () => {
             const error = new Error('fs.readFile error');
 
             fsMock.readFile.yieldsAsync(error);
-            breakerMock.runCommand.yieldsAsync(null);
+            // breakerMock.runCommand.yieldsAsync(null);
 
             executor.start(config, (err) => {
                 assert.deepEqual(err, error);
@@ -248,6 +272,7 @@ describe('index', () => {
             });
 
             jenkinsMock.job.create = sinon.stub(executor.jenkinsClient.job, 'create');
+            jenkinsMock.job.create = sinon.stub(executor.jenkinsClient.job, 'exists');
             jenkinsMock.job.build = sinon.stub(executor.jenkinsClient.job, 'build');
         });
 
