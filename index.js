@@ -15,7 +15,7 @@ class J5sExecutor extends Executor {
      * @param  {String}   options.module     Jenkins client module. For example: job, build
      * @param  {String}   options.action     Jenkins client action in the given module. For example: get, create
      * @param  {Array}    options.params     Parameters to run with
-     * @return {Promise}
+     * @param  {Function} callback           fn(err) from jenkinsClient
      */
     _jenkinsCommand(options, callback) {
         options.params.push(callback);
@@ -25,7 +25,14 @@ class J5sExecutor extends Executor {
             options.params);
     }
 
-    _jenkinsJobCreateOrUpdate(jobName, xml, cb) {
+    /**
+     * Create or update Jenkins job
+     * @method _jenkinsJobCreateOrUpdate
+     * @param  {String}   jobName            Jenkins job name
+     * @param  {String}   xml                Jenkins job configuration
+     * @return {Promise}
+     */
+    _jenkinsJobCreateOrUpdate(jobName, xml) {
         return Promise.resolve().then(() =>
             this.breaker.runCommand({ module: 'job',
                                       action: 'exists',
@@ -43,6 +50,12 @@ class J5sExecutor extends Executor {
         });
     }
 
+    /**
+     * Jenkins job name
+     * @method _jobName
+     * @param  {String}   buildId     ID for the build
+     * @return {String}               Jenkins job name
+     */
     _jobName(buildId){
         return`SD-${buildId}`;
     }
@@ -75,7 +88,7 @@ class J5sExecutor extends Executor {
         });
 
         // eslint-disable-next-line no-underscore-dangle
-        this.breaker = new Breaker(this._jenkinsCommand.bind(this));
+        this.breaker = new Breaker(this._jenkinsCommand.bind(this), options.fusebox);
     }
 
     /**
@@ -88,9 +101,6 @@ class J5sExecutor extends Executor {
      * @return {Promise}
      */
     _start(config) {
-        console.log('=== executor-j5s _start ===');
-        console.log(config);
-
         const jobName = this._jobName(config.buildId);
 
         return new Promise((resolve, reject) => {
@@ -106,7 +116,6 @@ class J5sExecutor extends Executor {
         }).then(xml =>
             this._jenkinsJobCreateOrUpdate(jobName, xml)
         ).then(() => {
-            console.log('=== executor-j5s _start job build ===');
             const parameters = {
                 SD_BUILDID: String(config.buildId),
                 SD_TOKEN: config.token,
@@ -125,13 +134,10 @@ class J5sExecutor extends Executor {
      * Stop the build
      * @method _stop
      * @param  {Object}   config            A configuration object
-     * @param  {String}   config.buildId    ID for the build and also name of the job in jenkins
+     * @param  {String}   config.buildId    ID for the build
      * @return {Promise}
      */
     _stop(config) {
-        console.log('=== executor-j5s _stop ===');
-        console.log(config);
-
         const jobName = this._jobName(config.buildId);
 
         return this.breaker.runCommand({
@@ -148,11 +154,11 @@ class J5sExecutor extends Executor {
                 action: 'stop',
                 params: [{name: jobName, number: data.lastBuild.number}]
             });
-        }).then(() => /*this.breaker.runCommand({
+        }).then(() => this.breaker.runCommand({
                 module: 'job',
                 action: 'destroy',
                 params: [{name: jobName}]
-        })*/ 10);
+        }));
     }
 }
 
