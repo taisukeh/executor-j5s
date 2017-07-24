@@ -148,11 +148,11 @@ class J5sExecutor extends Executor {
                 action: 'stop',
                 params: [{name: jobName, number: data.lastBuild.number}]
             });
-        }).then(() => this.breaker.runCommand({
+        }).then(() => /*this.breaker.runCommand({
                 module: 'job',
                 action: 'destroy',
                 params: [{name: jobName}]
-        }));
+        })*/ 10);
     }
 }
 
