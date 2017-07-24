@@ -1,61 +1,19 @@
 <project>
-    <description/>
-    <keepDependencies>false</keepDependencies>
-    <properties>
-        <hudson.model.ParametersDefinitionProperty>
-            <parameterDefinitions>
-                <hudson.model.TextParameterDefinition>
-                    <name>SD_BUILDID</name>
-                    <description/>
-                    <defaultValue/>
-                </hudson.model.TextParameterDefinition>
-                <hudson.model.TextParameterDefinition>
-                    <name>SD_API</name>
-                    <description/>
-                    <defaultValue/>
-                </hudson.model.TextParameterDefinition>
-                <hudson.model.TextParameterDefinition>
-                    <name>SD_STORE</name>
-                    <description/>
-                    <defaultValue/>
-                </hudson.model.TextParameterDefinition>
-                <hudson.model.PasswordParameterDefinition>
-                    <name>SD_TOKEN</name>
-                    <description/>
-                    <defaultValue/>
-                </hudson.model.PasswordParameterDefinition>
-            </parameterDefinitions>
-        </hudson.model.ParametersDefinitionProperty>
-    </properties>
-    <scm class="hudson.scm.NullSCM"/>
-    <assignedNode>screwdriver</assignedNode>
-    <canRoam>false</canRoam>
-    <disabled>false</disabled>
-    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
-    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
-    <triggers/>
-    <concurrentBuild>false</concurrentBuild>
-    <builders>
-      <hudson.tasks.Shell>
-        <command>/opt/bin/sd-worker</command>
-      </hudson.tasks.Shell>
-    </builders>
-    <publishers>
-      <hudson.plugins.postbuildtask.PostbuildTask plugin="postbuild-task@1.8">
-	<tasks>
-	  <hudson.plugins.postbuildtask.TaskProperties>
-	    <logTexts>
-	      <hudson.plugins.postbuildtask.LogProperties>
-		<logText>.</logText>
-		<operator>AND</operator>
-	      </hudson.plugins.postbuildtask.LogProperties>
-	    </logTexts>
-	    <EscalateStatus>false</EscalateStatus>
-	    <RunIfJobSuccessful>false</RunIfJobSuccessful>
-	    <script>/opt/bin/sd-cleanup</script>
-	  </hudson.plugins.postbuildtask.TaskProperties>
-	</tasks>
-      </hudson.plugins.postbuildtask.PostbuildTask>
-    </publishers>
-    <buildWrappers/>
+<description/>
+<keepDependencies>false</keepDependencies>
+<properties/>
+<scm class="hudson.scm.NullSCM"/>
+<canRoam>true</canRoam>
+<disabled>false</disabled>
+<blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+<blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+<triggers/>
+<concurrentBuild>false</concurrentBuild>
+<builders>
+<hudson.tasks.Shell>
+<command>sleep 100 | echo 'Hello, I am going to sleep for 100s!'</command>
+</hudson.tasks.Shell>
+</builders>
+<publishers/>
+<buildWrappers/>
 </project>
