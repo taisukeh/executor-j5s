@@ -25,6 +25,11 @@
                     <description/>
                     <defaultValue/>
                 </hudson.model.PasswordParameterDefinition>
+                <hudson.model.PasswordParameterDefinition>
+                    <name>SD_CONTAINER</name>
+                    <description/>
+                    <defaultValue/>
+                </hudson.model.PasswordParameterDefinition>
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
     </properties>

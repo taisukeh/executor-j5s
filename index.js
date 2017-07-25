@@ -124,6 +124,7 @@ class J5sExecutor extends Executor {
             const parameters = {
                 SD_BUILDID: String(config.buildId),
                 SD_TOKEN: config.token,
+                SD_CONTAINER: config.container,
                 SD_API: this.ecosystem.api,
                 SD_STORE: this.ecosystem.store
             };
