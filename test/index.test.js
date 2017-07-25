@@ -8,7 +8,7 @@ const path = require('path');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const configPath = path.resolve(__dirname, '../config/test-job.xml');
+const configPath = path.resolve(__dirname, '../config/job.xml');
 const TEST_XML = fs.readFileSync(configPath, 'utf-8');
 
 describe('index', () => {

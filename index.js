@@ -109,7 +109,7 @@ class J5sExecutor extends Executor {
         const jobName = this._jobName(config.buildId);
 
         return new Promise((resolve, reject) => {
-            const configPath = path.resolve(__dirname, './config/test-job.xml');
+            const configPath = path.resolve(__dirname, './config/job.xml');
 
             fs.readFile(configPath, 'utf-8', (err, fileContents) => {
                 if (err) {
