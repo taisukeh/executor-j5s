@@ -6,7 +6,7 @@
         <hudson.model.ParametersDefinitionProperty>
             <parameterDefinitions>
                 <hudson.model.TextParameterDefinition>
-                    <name>SD_BUILDID</name>
+                    <name>SD_BUILD_ID</name>
                     <description/>
                     <defaultValue/>
                 </hudson.model.TextParameterDefinition>

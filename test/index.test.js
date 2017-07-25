@@ -35,7 +35,7 @@ describe('index', () => {
     };
 
     const buildParameters = {
-        SD_BUILDID: String(config.buildId),
+        SD_BUILD_ID: String(config.buildId),
         SD_TOKEN: config.token,
         SD_CONTAINER: config.container,
         SD_API: ecosystem.api,
