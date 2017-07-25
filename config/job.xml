@@ -25,11 +25,11 @@
                     <description/>
                     <defaultValue/>
                 </hudson.model.PasswordParameterDefinition>
-                <hudson.model.PasswordParameterDefinition>
+                <hudson.model.TextParameterDefinition>
                     <name>SD_CONTAINER</name>
                     <description/>
                     <defaultValue/>
-                </hudson.model.PasswordParameterDefinition>
+                </hudson.model.TextParameterDefinition>
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
     </properties>
