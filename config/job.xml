@@ -43,7 +43,7 @@
     <concurrentBuild>false</concurrentBuild>
     <builders>
         <hudson.tasks.Shell>
-            <command>/opt/bin/sd-worker</command>
+            <command><%= buildScript %></command>
         </hudson.tasks.Shell>
     </builders>
     <publishers>
@@ -58,7 +58,7 @@
 	                </logTexts>
 	                <EscalateStatus>false</EscalateStatus>
 	                <RunIfJobSuccessful>false</RunIfJobSuccessful>
-	                <script>/opt/bin/sd-cleanup</script>
+	                <script><%= cleanupScript %></script>
 	            </hudson.plugins.postbuildtask.TaskProperties>
 	        </tasks>
         </hudson.plugins.postbuildtask.PostbuildTask>
