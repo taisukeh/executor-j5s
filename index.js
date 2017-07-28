@@ -6,6 +6,7 @@ const jenkins = require('jenkins');
 const fs = require('fs');
 const xmlescape = require('xml-escape');
 const shellescape = require('shell-escape');
+const _ = require('lodash');
 const Breaker = require('circuit-fuses');
 
 class J5sExecutor extends Executor {
@@ -131,8 +132,10 @@ class J5sExecutor extends Executor {
                 return resolve(fileContents);
             });
         }).then(xml => (
-            xml.replace('<%= buildScript %>', xmlescape(buildScript))
-               .replace('<%= cleanupScript %>', xmlescape(cleanupScript))
+            _.template(xml)({
+                buildScript: xmlescape(buildScript),
+                cleanupScript: xmlescape(cleanupScript)
+            })
         ));
     }
 
