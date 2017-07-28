@@ -20,9 +20,12 @@ The class provides a couple options that are configurable in the instantiation o
 | config.jenkins.password | String | | The password or token for Jenkins cluster  |
 | config.jenkins.host | String | | The hostname for the Jenkins cluster |
 | config.jenkins.port | Number | 8080 | The port number for the Jenkins cluster |
+| config.jenkins.nodeLabel | String | 'screwdriver' | Jenkins slave node label |
 | config.docker.command | String | 'docker' | Path to the docker command |
 | config.docker.launchVersion | String | 'stable' | Launcher container version to use |
 | config.docker.prefix | String | '' | Prefix to container names |
+| config.docker.memory | String | '4g' | Memory limit (docker run `--memory` option) |
+| config.docker.memoryLimit | String | '6g' | Memory limit include swap (docker run `--memory-swap` option) |
 | config.buildScript | String | | Shell script to start the job |
 | config.cleanupScript | String | '' | Shell script to clean up build the job |
 | config.cleanupTimeLimit | Number | 20 | Time to stop the job (seconds) |

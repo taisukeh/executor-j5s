@@ -133,6 +133,7 @@ class J5sExecutor extends Executor {
             });
         }).then(xml => (
             _.template(xml)({
+                nodeLabel: xmlescape(this.nodeLabel),
                 buildScript: xmlescape(buildScript),
                 cleanupScript: xmlescape(cleanupScript)
             })
@@ -268,11 +269,12 @@ ${stopContainer}
      * @param  {Number} [options.jenkins.port=8080]                    Jenkins port to make requests to
      * @param  {String} [options.jenkins.username='screwdriver']       Jenkins username
      * @param  {String} options.jenkins.password                       Jenkins password/token
+     * @param  {String} [options.jenkins.nodeLabel='screwdriver']      Jenkins slave node label
      * @param  {String} [options.docker.command='docker']              Path to the docker command
      * @param  {String} [options.docker.launchVersion='stable']        Launcher container version to use
      * @param  {String} [options.docker.prefix='']                     Prefix to all container names
-     * @param  {String} [options.memory='4g']                          Memory limit (docker run `--memory` option)
-     * @param  {String} [options.memoryLimit='6g']                     Memory limit include swap (docker run `--memory-swap` option)
+     * @param  {String} [options.docker.memory='4g']                   Memory limit (docker run `--memory` option)
+     * @param  {String} [options.docker.memoryLimit='6g']              Memory limit include swap (docker run `--memory-swap` option)
      * @param  {String} [options.buildScript]                          Shell script to start the job
      * @param  {String} [options.cleanupScript='']                     Shell script to clean up the job
      * @param  {Number} [options.cleanupTimeLimit=20]                  Time to destory the job(seconds)
@@ -286,6 +288,7 @@ ${stopContainer}
         this.port = options.jenkins.port || '8080';
         this.username = options.jenkins.username || 'screwdriver';
         this.password = options.jenkins.password;
+        this.nodeLabel = options.jenkins.nodeLabel || 'screwdriver';
         this.dockerCommand = (options.docker && options.docker.command) || 'docker';
         this.launchVersion = (options.docker && options.docker.launchVersion) || 'stable';
         this.prefix = (options.docker && options.docker.prefix) || '';

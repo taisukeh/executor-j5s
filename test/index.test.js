@@ -32,6 +32,8 @@ describe('index', () => {
 
     const jobName = `SD-${config.buildId}`;
 
+    const nodeLabel = 'node-label-foo';
+
     const ecosystem = {
         api: 'api',
         ui: 'ui',
@@ -111,13 +113,15 @@ describe('index', () => {
             jenkins: {
                 host: 'jenkins',
                 username: 'admin',
-                password: 'fakepassword'
+                password: 'fakepassword',
+                nodeLabel
             },
             buildScript,
             cleanupScript,
             cleanupWatchInterval
         });
         compiledJobXml = _.template(TEST_XML)({
+            nodeLabel: xmlescape(nodeLabel),
             buildScript: xmlescape(buildScript),
             cleanupScript: xmlescape(cleanupScript)
         });
@@ -399,6 +403,7 @@ describe('index', () => {
             const taskScript = executor._dockerTaskScript(config);
 
             compiledJobXml = _.template(TEST_XML)({
+                nodeLabel: 'screwdriver',
                 buildScript: xmlescape(taskScript.buildScript),
                 cleanupScript: xmlescape(taskScript.cleanupScript)
             });
@@ -441,7 +446,8 @@ describe('index', () => {
                 jenkins: {
                     host: 'jenkins',
                     username: 'admin',
-                    password: 'fakepassword'
+                    password: 'fakepassword',
+                    nodeLabel
                 },
                 docker: {
                     command: '/foo/docker',
@@ -485,7 +491,8 @@ describe('index', () => {
                 jenkins: {
                     host: 'jenkins',
                     username: 'admin',
-                    password: 'fakepassword'
+                    password: 'fakepassword',
+                    nodeLabel
                 },
                 buildScript,
                 cleanupScript
