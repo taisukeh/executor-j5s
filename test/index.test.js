@@ -3,16 +3,67 @@
 const assert = require('chai').assert;
 const sinon = require('sinon');
 const mockery = require('mockery');
-const fs = require('fs');
 const path = require('path');
-const _ = require('lodash');
+const tinytim = require('tinytim');
 const xmlescape = require('xml-escape');
 const shellescape = require('shell-escape');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const configPath = path.resolve(__dirname, '../config/job.xml');
-const TEST_XML = fs.readFileSync(configPath, 'utf-8');
+const configPath = path.resolve(__dirname, '../config/job.xml.tim');
+const TEST_XML = configPath;
+
+const TEST_JOB_XML = `
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <assignedNode>{{nodeLabel}}</assignedNode>
+    <builders>
+        <hudson.tasks.Shell>
+            <command>{{buildScript}}</command>
+        </hudson.tasks.Shell>
+    </builders>
+    <publishers>
+        <hudson.plugins.postbuildtask.PostbuildTask plugin="postbuild-task@1.8">
+            <script>{{cleanupScript}}</script>
+        </hudson.plugins.postbuildtask.PostbuildTask>
+    </publishers>
+</project>
+`;
+
+const TEST_COMPOSE_YAML = `
+version: '2'
+services:
+  launcher:
+    image: screwdrivercd/launcher:{{launcher_version}}
+    container_name: {{build_id_with_prefix}}-init
+    labels:
+      sdbuild: {{build_id_with_prefix}}
+    volumes:
+      - /opt/sd
+    entrypoint: /bin/true
+  build:
+    image: {{base_image}}
+    container_name: {{build_id_with_prefix}}-build
+    volumes_from:
+      - launcher:rw
+    labels:
+      sdbuild: {{build_id_with_prefix}}
+    mem_limit: {{memory}}
+    memswap_limit: {{memory_swap}}
+    environment:
+      SD_TOKEN:
+    volumes_from:
+      - launcher:rw
+    entrypoint: /opt/sd/tini
+    command:
+      - "--"
+      - "/bin/sh"
+      - "-c"
+      - |
+          /opt/sd/launch --api-uri {{api_uri}} --emitter /opt/sd/emitter {{build_id}} &
+          /opt/sd/logservice --emitter /opt/sd/emitter --api-uri {{store_uri}} --build {{build_id}} &
+          wait $(jobs -p)
+`;
 
 describe('index', () => {
     let executor;
@@ -22,6 +73,7 @@ describe('index', () => {
     let breakerMock;
     let BreakerFactory;
     let compiledJobXml;
+    let compiledComposeYml;
 
     const config = {
         buildId: 1993,
@@ -84,7 +136,7 @@ describe('index', () => {
 
     beforeEach(() => {
         fsMock = {
-            readFile: sinon.stub()
+            readFileSync: sinon.stub()
         };
 
         jenkinsMock = {
@@ -101,6 +153,9 @@ describe('index', () => {
         };
 
         BreakerFactory = sinon.stub().returns(breakerMock);
+
+        fsMock.readFileSync.withArgs(sinon.match(/config\/job.xml.tim/))
+              .returns(TEST_JOB_XML);
 
         mockery.registerMock('fs', fsMock);
         mockery.registerMock('circuit-fuses', BreakerFactory);
@@ -120,7 +175,8 @@ describe('index', () => {
             cleanupScript,
             cleanupWatchInterval
         });
-        compiledJobXml = _.template(TEST_XML)({
+
+        compiledJobXml = tinytim.render(TEST_JOB_XML, {
             nodeLabel: xmlescape(nodeLabel),
             buildScript: xmlescape(buildScript),
             cleanupScript: xmlescape(cleanupScript)
@@ -179,13 +235,9 @@ describe('index', () => {
         });
 
         it('return null when the job is successfully created', (done) => {
-            fsMock.readFile.yieldsAsync(null, TEST_XML);
-
             breakerMock.runCommand.withArgs(existsOpts).resolves(false);
 
             executor.start(config).then(() => {
-                assert.calledOnce(fsMock.readFile);
-                assert.calledWith(fsMock.readFile, configPath);
                 assert.calledWith(breakerMock.runCommand, existsOpts);
                 assert.calledWith(breakerMock.runCommand, createOpts);
                 assert.calledWith(breakerMock.runCommand, buildOpts);
@@ -194,13 +246,9 @@ describe('index', () => {
         });
 
         it('update job when job already exists', (done) => {
-            fsMock.readFile.yieldsAsync(null, TEST_XML);
-
             breakerMock.runCommand.withArgs(existsOpts).resolves(true);
 
             executor.start(config).then(() => {
-                assert.calledOnce(fsMock.readFile);
-                assert.calledWith(fsMock.readFile, configPath);
                 assert.calledWith(breakerMock.runCommand, existsOpts);
                 assert.calledWith(breakerMock.runCommand, configOpts);
                 assert.calledWith(breakerMock.runCommand, buildOpts);
@@ -208,21 +256,9 @@ describe('index', () => {
             });
         });
 
-        it('return error when fs.readFile is getting error', (done) => {
-            const error = new Error('fs.readFile error');
-
-            fsMock.readFile.yieldsAsync(error);
-
-            executor.start(config).catch((err) => {
-                assert.deepEqual(err, error);
-                done();
-            });
-        });
-
         it('return error when job.create is getting error', (done) => {
             const error = new Error('job.create error');
 
-            fsMock.readFile.yieldsAsync(null, TEST_XML);
             breakerMock.runCommand.withArgs(createOpts).rejects(error);
 
             executor.start(config).catch((err) => {
@@ -234,7 +270,6 @@ describe('index', () => {
         it('return error when job.build is getting error', (done) => {
             const error = new Error('job.build error');
 
-            fsMock.readFile.yieldsAsync(null, TEST_XML);
             breakerMock.runCommand.withArgs(createOpts).resolves('ok');
             breakerMock.runCommand.withArgs(buildOpts).rejects(error);
 
@@ -247,7 +282,6 @@ describe('index', () => {
         it('return error when job.config is getting error', (done) => {
             const error = new Error('job.build error');
 
-            fsMock.readFile.yieldsAsync(null, TEST_XML);
             breakerMock.runCommand.withArgs(existsOpts).resolves(true);
             breakerMock.runCommand.withArgs(configOpts).rejects(error);
 
@@ -384,9 +418,40 @@ describe('index', () => {
     });
 
     describe('use docker', () => {
+        const composeCommand = 'fake-docker-compose';
+        const buildScriptTim = `
+set -eu
+
+cat << EOL > docker-compose.yml
+{{composeYml}}
+EOL
+
+${composeCommand} pull
+${composeCommand} up
+`;
+
+        const cleanupScript = `
+${composeCommand} rm -f -s
+rm -f docker-compose.yml
+`;
+
         beforeEach(() => {
             mockery.deregisterMock('circuit-fuses');
             mockery.resetCache();
+
+            fsMock.readFileSync.withArgs(sinon.match(/config\/docker-compose.yml.tim/))
+                  .returns(TEST_COMPOSE_YAML);
+
+            compiledComposeYml = tinytim.render(TEST_COMPOSE_YAML, {
+                launcher_version: 'stable',
+                build_id: config.buildId,
+                build_id_with_prefix: `${config.buildId}`,
+                base_image: config.container,
+                memory: '4g',
+                memory_swap: '6g',
+                api_uri: ecosystem.api,
+                store_uri: ecosystem.store
+            });
 
             // eslint-disable-next-line global-require
             Executor = require('../index');
@@ -397,15 +462,19 @@ describe('index', () => {
                     host: 'jenkins',
                     username: 'admin',
                     password: 'fakepassword'
+                },
+                docker: {
+                    composeCommand
                 }
             });
 
             const taskScript = executor._dockerTaskScript(config);
+            const buildScript = tinytim.render(buildScriptTim, { composeYml: compiledComposeYml });
 
-            compiledJobXml = _.template(TEST_XML)({
+            compiledJobXml = tinytim.renderFile(TEST_XML, {
                 nodeLabel: 'screwdriver',
-                buildScript: xmlescape(taskScript.buildScript),
-                cleanupScript: xmlescape(taskScript.cleanupScript)
+                buildScript: xmlescape(buildScript),
+                cleanupScript: xmlescape(cleanupScript)
             });
 
             jenkinsMock.job.create = sinon.stub(executor.jenkinsClient.job, 'create');
@@ -415,7 +484,6 @@ describe('index', () => {
         });
 
         it('calls jenkins function correctly', (done) => {
-            fsMock.readFile.yieldsAsync(null, compiledJobXml);
             jenkinsMock.job.exists.yieldsAsync(null, false);
             jenkinsMock.job.create.yieldsAsync(null);
             jenkinsMock.job.build.yieldsAsync(null);
@@ -429,18 +497,57 @@ describe('index', () => {
         });
 
         it('run docker command with default options correctly', () => {
-            // build container
-            assert.include(compiledJobXml, xmlescape(shellescape(['--memory', '4g'])));
-            assert.include(compiledJobXml, xmlescape(shellescape(['--memory-swap', '6g'])));
-            assert.include(compiledJobXml, xmlescape(config.container));
+            const executorConfig = {
+                ecosystem,
+                jenkins: {
+                    host: 'jenkins',
+                    username: 'admin',
+                    password: 'fakepassword',
+                    nodeLabel
+                }
+            };
 
-            // launcher container
-            assert.include(compiledJobXml,
-                xmlescape(shellescape(['--label', `sdbuild=${config.buildId}`])));
-            assert.include(compiledJobXml, xmlescape('screwdrivercd/launcher:stable'));
+            executor = new Executor(executorConfig);
+
+            compiledComposeYml = tinytim.render(TEST_COMPOSE_YAML, {
+                launcher_version: 'stable',
+                build_id: config.buildId,
+                build_id_with_prefix: `${config.buildId}`,
+                base_image: config.container,
+                memory: '4g',
+                memory_swap: '6g',
+                api_uri: ecosystem.api,
+                store_uri: ecosystem.store
+            });
+
+            const composeCommand = 'docker-compose';
+
+            const { buildScript, cleanupScript } = executor._dockerTaskScript(config);
+
+            assert.equal(buildScript, `
+set -eu
+
+cat << EOL > docker-compose.yml
+${compiledComposeYml}
+EOL
+
+${composeCommand} pull
+${composeCommand} up
+`);
+
+            assert.equal(cleanupScript, `
+${composeCommand} rm -f -s
+rm -f docker-compose.yml
+`);
         });
 
         it('run docker command with provided options correctly', () => {
+            const composeCommand = 'foo-compose';
+            const prefix = 'foo-prefix';
+            const launchVersion = 'foo-ver';
+            const memory = '20g';
+            const memoryLimit = '25g';
+
             const executorConfig = {
                 ecosystem,
                 jenkins: {
@@ -450,31 +557,44 @@ describe('index', () => {
                     nodeLabel
                 },
                 docker: {
-                    command: '/foo/docker',
-                    memory: '1g',
-                    memoryLimit: '2g',
-                    prefix: 'foo-prefix',
-                    launchVersion: 'foo-ver'
+                    composeCommand,
+                    memory,
+                    memoryLimit,
+                    prefix,
+                    launchVersion
                 }
             };
 
             executor = new Executor(executorConfig);
 
-            const build = executor._dockerTaskScript(config).buildScript;
+            compiledComposeYml = tinytim.render(TEST_COMPOSE_YAML, {
+                launcher_version: launchVersion,
+                build_id: config.buildId,
+                build_id_with_prefix: `${prefix}${config.buildId}`,
+                base_image: config.container,
+                memory,
+                memory_swap: memoryLimit,
+                api_uri: ecosystem.api,
+                store_uri: ecosystem.store
+            });
 
-            // build container
-            assert.include(build,
-                shellescape(['--memory', executorConfig.docker.memory]));
-            assert.include(build,
-                shellescape(['--memory-swap', executorConfig.docker.memoryLimit]));
+            const { buildScript, cleanupScript } = executor._dockerTaskScript(config);
 
-            // launcher container
-            const label = `sdbuild=${executorConfig.docker.prefix}${config.buildId}`;
+            assert.equal(buildScript, `
+set -eu
 
-            assert.include(build,
-                shellescape(['--label', label]));
-            assert.include(build,
-                `screwdrivercd/launcher:${executorConfig.docker.launchVersion}`);
+cat << EOL > docker-compose.yml
+${compiledComposeYml}
+EOL
+
+${composeCommand} pull
+${composeCommand} up
+`);
+
+            assert.equal(cleanupScript, `
+${composeCommand} rm -f -s
+rm -f docker-compose.yml
+`);
         });
     });
 
@@ -505,7 +625,6 @@ describe('index', () => {
         });
 
         it('calls jenkins function correctly', (done) => {
-            fsMock.readFile.yieldsAsync(null, TEST_XML);
             jenkinsMock.job.exists.yieldsAsync(null, false);
             jenkinsMock.job.create.yieldsAsync(null);
             jenkinsMock.job.build.yieldsAsync(null);
