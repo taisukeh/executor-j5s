@@ -169,6 +169,11 @@ describe('index', () => {
         assert.instanceOf(executor, BaseExecutor);
     });
 
+    it('is secure properly', () => {
+        assert.isUndefined(executor.password);
+        assert.isUndefined(executor.baseUrl);
+    });
+
     describe('start', () => {
         let createOpts;
         let configOpts;
