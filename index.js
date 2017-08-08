@@ -7,6 +7,9 @@ const xmlescape = require('xml-escape');
 const tinytim = require('tinytim');
 const Breaker = require('circuit-fuses');
 
+const password = Symbol('password');
+const baseUrl = Symbol('baseUrl');
+
 class J5sExecutor extends Executor {
     /**
      * JenkinsClient command to run
@@ -224,7 +227,7 @@ rm -f docker-compose.yml
         this.host = options.jenkins.host;
         this.port = options.jenkins.port || '8080';
         this.username = options.jenkins.username || 'screwdriver';
-        this.password = options.jenkins.password;
+        this[password] = options.jenkins.password;
         this.nodeLabel = options.jenkins.nodeLabel || 'screwdriver';
         this.composeCommand = (options.docker && options.docker.composeCommand) || 'docker-compose';
         this.launchVersion = (options.docker && options.docker.launchVersion) || 'stable';
@@ -238,9 +241,9 @@ rm -f docker-compose.yml
         this.cleanupWatchInterval = options.cleanupWatchInterval || 2;
 
         // need to pass port number in the future
-        this.baseUrl = `http://${this.username}:${this.password}@${this.host}:${this.port}`;
+        this[baseUrl] = `http://${this.username}:${this[password]}@${this.host}:${this.port}`;
         this.jenkinsClient = jenkins({
-            baseUrl: this.baseUrl,
+            baseUrl: this[baseUrl],
             crumbIssuer: true
         });
 
