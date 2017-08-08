@@ -135,7 +135,7 @@ class J5sExecutor extends Executor {
      * @return {Object}
      */
     _taskScript(config) {
-        if (this.buildScript && this.cleanupScript) {
+        if (this.buildScript) {
             return {
                 buildScript: this.buildScript,
                 cleanupScript: this.cleanupScript
