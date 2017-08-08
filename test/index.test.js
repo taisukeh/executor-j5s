@@ -6,7 +6,6 @@ const mockery = require('mockery');
 const path = require('path');
 const tinytim = require('tinytim');
 const xmlescape = require('xml-escape');
-const shellescape = require('shell-escape');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -61,7 +60,7 @@ services:
       - "-c"
       - |
           /opt/sd/launch --api-uri {{api_uri}} --emitter /opt/sd/emitter {{build_id}} &
-          /opt/sd/logservice --emitter /opt/sd/emitter --api-uri {{store_uri}} --build {{build_id}} &
+          /opt/sd/logservice --api-uri {{store_uri}} --build {{build_id}} &
           wait $(jobs -p)
 `;
 
