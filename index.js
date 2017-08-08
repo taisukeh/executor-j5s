@@ -33,6 +33,7 @@ class J5sExecutor extends Executor {
      * @param  {String}   jobName            Jenkins job name
      * @param  {String}   xml                Jenkins job configuration
      * @return {Promise}
+     * @private
      */
     _jenkinsJobCreateOrUpdate(jobName, xml) {
         return Promise.resolve().then(() =>
@@ -63,6 +64,7 @@ class J5sExecutor extends Executor {
      * @method _jenkinsJobStop
      * @param  {String}   jobName            Jenkins job name
      * @return {Promise}
+     * @private
      */
     _jenkinsJobStop(jobName) {
         return this.breaker.runCommand({
@@ -88,6 +90,7 @@ class J5sExecutor extends Executor {
      * @param  {String}   jobName            Jenkins job name
      * @param  {Number}   timeConsumed       Elapsed time
      * @return {Promise}
+     * @private
      */
     _jenkinsJobWaitStop(jobName, timeConsumed) {
         if (timeConsumed >= this.cleanupTimeLimit) {
@@ -117,6 +120,7 @@ class J5sExecutor extends Executor {
      * @method _loadJobXml
      * @param  {Object}   config        A configuration object psssed to _start
      * @return {String}
+     * @private
      */
     _loadJobXml(config) {
         const { buildScript, cleanupScript } = this._taskScript(config);
@@ -136,6 +140,7 @@ class J5sExecutor extends Executor {
      * @method _taskScript
      * @param  {Object}   config        A configuration object psssed to _start
      * @return {Object}
+     * @private
      */
     _taskScript(config) {
         if (this.buildScript) {
@@ -153,6 +158,7 @@ class J5sExecutor extends Executor {
      * @method _dockerTaskScript
      * @param  {Object}   config        A configuration object psssed to _start
      * @return {Object}
+     * @private
      */
     _dockerTaskScript(config) {
         const variables = {
@@ -175,7 +181,7 @@ class J5sExecutor extends Executor {
             composeYml,
             'EOL',
             '',
-            [this.composeCommand pull`,
+            `${this.composeCommand} pull`,
             `${this.composeCommand} up`
         ].join('\n');
 
@@ -192,13 +198,15 @@ class J5sExecutor extends Executor {
      * @method _jobName
      * @param  {String}   buildId     ID for the build
      * @return {String}               Jenkins job name
+     * @private
      */
     _jobName(buildId) {
         return `SD-${buildId}`;
     }
 
     /**
-     * Constructor
+     * Create Jenkins Executor
+     * @constructor
      * @method constructor
      * @param  {Object} options           Configuration options
      * @param  {Object} options.ecosystem                              Screwdriver Ecosystem
