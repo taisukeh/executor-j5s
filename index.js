@@ -169,21 +169,20 @@ class J5sExecutor extends Executor {
         const templateFile = path.resolve(__dirname, './config/docker-compose.yml.tim');
         const composeYml = tinytim.renderFile(templateFile, variables);
 
-        const buildScript = `
-set -eu
+        const buildScript = [
+            'set -eu',
+            "cat << 'EOL' > docker-compose.yml",
+            composeYml,
+            'EOL',
+            '',
+            [this.composeCommand pull`,
+            `${this.composeCommand} up`
+        ].join('\n');
 
-cat << EOL > docker-compose.yml
-${composeYml}
-EOL
-
-${this.composeCommand} pull
-${this.composeCommand} up
-`;
-
-        const cleanupScript = `
-${this.composeCommand} rm -f -s
-rm -f docker-compose.yml
-`;
+        const cleanupScript = [
+            `${this.composeCommand} rm -f -s`,
+            'rm -f docker-compose.yml'
+        ].join('\n');
 
         return { buildScript, cleanupScript };
     }

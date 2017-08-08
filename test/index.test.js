@@ -462,19 +462,18 @@ describe('index', () => {
 
                 const buildScriptTim = `
 set -eu
-
-cat << EOL > docker-compose.yml
+cat << 'EOL' > docker-compose.yml
 {{composeYml}}
 EOL
 
 docker-compose pull
 docker-compose up
-`;
+`.trim();
 
                 const cleanupScript = `
 docker-compose rm -f -s
 rm -f docker-compose.yml
-`;
+`.trim();
 
                 const buildScript = tinytim.render(buildScriptTim, {
                     composeYml
@@ -528,19 +527,18 @@ rm -f docker-compose.yml
 
                 const buildScriptTim = `
 set -eu
-
-cat << EOL > docker-compose.yml
+cat << 'EOL' > docker-compose.yml
 {{composeYml}}
 EOL
 
 ${composeCommand} pull
 ${composeCommand} up
-`;
+`.trim();
 
                 const cleanupScript = `
 ${composeCommand} rm -f -s
 rm -f docker-compose.yml
-`;
+`.trim();
 
                 const buildScript = tinytim.render(buildScriptTim, {
                     composeYml
