@@ -217,7 +217,7 @@ class J5sExecutor extends Executor {
      * @param  {String} [options.jenkins.username='screwdriver']       Jenkins username
      * @param  {String} options.jenkins.password                       Jenkins password/token
      * @param  {String} [options.jenkins.nodeLabel='screwdriver']      Node labels of Jenkins slaves
-     * @param  {String} [options.docker.command='docker']              THe path to the docker command
+     * @param  {String} [options.docker.composeCommand='docker-compose']    THe path to the docker-compose command
      * @param  {String} [options.docker.launchVersion='stable']        Launcher container version to use
      * @param  {String} [options.docker.prefix='']                     Prefix to all container names
      * @param  {String} [options.docker.memory='4g']                   Memory limit (docker run `--memory` option)
