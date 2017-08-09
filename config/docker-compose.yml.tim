@@ -29,4 +29,4 @@ services:
       - |
           /opt/sd/launch --api-uri {{api_uri}} --emitter /opt/sd/emitter {{build_id}} &
           /opt/sd/logservice --emitter /opt/sd/emitter --api-uri {{store_uri}} --build {{build_id}} &
-          wait $(jobs -p)
+          wait $$(jobs -p)
